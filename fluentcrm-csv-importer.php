@@ -16,7 +16,9 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             add_action('admin_menu', [$this, 'add_admin_menu']);
         }
 
-        // Function to add the admin menu page
+        /**
+         * Adds the admin menu page for importing and exporting contacts.
+         */
         public function add_admin_menu() {
             add_menu_page(
                 'FluentCRM CSV Importer',   
@@ -36,7 +38,10 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             );
         }
 
-        // Function to display the CSV upload form and FluentCRM detection
+        /**
+         * Displays the import page for uploading a CSV file.
+         * Checks if FluentCRM is active before showing the upload form.
+         */
         public function display_import_page() {
             ?>
             <div class="wrap">
@@ -66,8 +71,10 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             }
         }
 
-        // Function to display the export page
-        // Function to display the export page
+        /**
+         * Displays the export page for exporting FluentCRM contacts as a CSV file.
+         * Checks if FluentCRM is active before showing the export button.
+         */
         public function display_export_page() {
             ?>
             <div class="wrap">
@@ -96,7 +103,10 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             }
         }
 
-        // Function to handle CSV export of FluentCRM contacts
+        /**
+         * Handles the CSV export of FluentCRM contacts.
+         * Sends a CSV file for download containing the subscribers' details.
+         */
         private function process_csv_export() {
             // Check if FluentCRM is active
             if (!$this->is_fluentcrm_active()) {
@@ -138,16 +148,20 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             exit; 
         }
 
-
-
-
-        // Function to check if FluentCRM is installed and active
+        /**
+         * Checks if FluentCRM is installed and active.
+         * 
+         * @return bool True if FluentCRM is active, false otherwise.
+         */
         private function is_fluentcrm_active() {
             // Check if FluentCRM's Subscriber class exists
             return class_exists('FluentCrm\App\Models\Subscriber');
         }
 
-        // Function to handle the CSV file import and contact insertion
+        /**
+         * Handles the import of contacts from a CSV file into FluentCRM.
+         * It creates or updates contacts and assigns them to a specific tag and list.
+         */
         private function process_csv_import() {
             if (!$this->is_fluentcrm_active()) {
                 echo '<div class="notice notice-error">FluentCRM is not installed or activated.</div>';
@@ -230,19 +244,16 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
                             }
                         }
                     }
-
-                    // Close the file
-                    fclose($handle);
+                    fclose($handle); // Close the CSV file
                 } else {
                     echo '<div class="notice notice-error">Failed to open the CSV file.</div>';
                 }
             } else {
-                echo '<div class="notice notice-error">Please upload a valid CSV file.</div>';
+                echo '<div class="notice notice-error">No CSV file uploaded.</div>';
             }
         }
-
     }
 
-    // Initialize the plugin class
+    // Initialize the plugin
     new FluentCRM_CSV_Importer();
 }
