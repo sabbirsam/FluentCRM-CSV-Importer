@@ -18,10 +18,10 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
         // Function to add the admin menu page
         public function add_admin_menu() {
             add_menu_page(
-                'FluentCRM CSV Importer',   
-                'CSV Import to FluentCRM',  
-                'manage_options',            
-                'fluentcrm-csv-importer',   
+                'FluentCRM CSV Importer',
+                'CSV Import to FluentCRM',
+                'manage_options',
+                'fluentcrm-csv-importer',
                 [$this, 'display_import_page']
             );
         }
@@ -30,21 +30,21 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
         public function display_import_page() {
             ?>
             <div class="wrap">
-                <h1>Import Contacts into FluentCRM</h1>
+                <h1><?php esc_html_e('Import Contacts into FluentCRM', 'fluentcrm-csv-importer'); ?></h1>
 
                 <?php if (!$this->is_fluentcrm_active()) : ?>
                     <div class="notice notice-error">
-                        <p>FluentCRM is not installed or activated. Please install and activate FluentCRM to use this plugin.</p>
+                        <p><?php esc_html_e('FluentCRM is not installed or activated. Please install and activate FluentCRM to use this plugin.', 'fluentcrm-csv-importer'); ?></p>
                     </div>
                 <?php else : ?>
                     <div class="notice notice-success">
-                        <p>FluentCRM is detected and active. You can proceed with importing contacts.</p>
+                        <p><?php esc_html_e('FluentCRM is detected and active. You can proceed with importing contacts.', 'fluentcrm-csv-importer'); ?></p>
                     </div>
 
                     <form method="post" enctype="multipart/form-data">
                         <input type="file" name="csv_file" accept=".csv" required>
                         <br><br>
-                        <input type="submit" name="import_csv" value="Import CSV" class="button button-primary">
+                        <input type="submit" name="import_csv" value="<?php esc_attr_e('Import CSV', 'fluentcrm-csv-importer'); ?>" class="button button-primary">
                     </form>
                 <?php endif; ?>
             </div>
@@ -58,14 +58,13 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
 
         // Function to check if FluentCRM is installed and active
         private function is_fluentcrm_active() {
-            // Check if FluentCRM's Subscriber class exists
             return class_exists('FluentCrm\App\Models\Subscriber');
         }
 
         // Function to handle the CSV file import and contact insertion
         private function process_csv_import() {
             if (!$this->is_fluentcrm_active()) {
-                echo '<div class="notice notice-error">FluentCRM is not installed or activated.</div>';
+                echo '<div class="notice notice-error">' . esc_html__('FluentCRM is not installed or activated.', 'fluentcrm-csv-importer') . '</div>';
                 return;
             }
 
@@ -74,12 +73,12 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
             $list = FluentCrm\App\Models\Lists::firstOrCreate(['slug' => 'random-user-list'], ['title' => 'Random user list']);
 
             if (!$tag || !$list) {
-                echo '<div class="notice notice-error">Failed to retrieve or create tag/list in FluentCRM.</div>';
+                echo '<div class="notice notice-error">' . esc_html__('Failed to retrieve or create tag/list in FluentCRM.', 'fluentcrm-csv-importer') . '</div>';
                 return;
             }
 
-            $tag_id = $tag->id;
-            $list_id = $list->id;
+            $tag_id = (int) $tag->id;
+            $list_id = (int) $list->id;
 
             // Check if a file was uploaded
             if (!empty($_FILES['csv_file']['tmp_name'])) {
@@ -92,20 +91,20 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
 
                     // Loop through each row of the CSV file
                     while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                        $full_name = $data[0];
-                        $email = $data[2];  // CSV's email column is the third field (index 2)
-                        $work_phone = $data[3];
-                        $mobile_phone = $data[4];
+                        $full_name = sanitize_text_field($data[0]);
+                        $email = sanitize_email($data[2]);  // CSV's email column is the third field (index 2)
+                        $work_phone = sanitize_text_field($data[3]);
+                        $mobile_phone = sanitize_text_field($data[4]);
 
                         // Skip rows with empty email
-                        if (empty($email)) {
+                        if (empty($email) || !is_email($email)) {
                             continue;
                         }
 
                         // Split full name into first and last name
                         $name_parts = explode(' ', $full_name, 2);
-                        $first_name = isset($name_parts[0]) ? $name_parts[0] : '';
-                        $last_name = isset($name_parts[1]) ? $name_parts[1] : '';
+                        $first_name = isset($name_parts[0]) ? sanitize_text_field($name_parts[0]) : '';
+                        $last_name = isset($name_parts[1]) ? sanitize_text_field($name_parts[1]) : '';
 
                         // Check if the subscriber already exists by email
                         $existing_contact = FluentCrm\App\Models\Subscriber::where('email', $email)->first();
@@ -114,21 +113,21 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
                             // If contact exists, update its information
                             $existing_contact->first_name = $first_name;
                             $existing_contact->last_name = $last_name;
-                            $existing_contact->phone = $mobile_phone ?: $work_phone; // Set either work or mobile phone
+                            $existing_contact->phone = !empty($mobile_phone) ? $mobile_phone : $work_phone; // Set either work or mobile phone
                             $existing_contact->save();
 
                             // Attach to tag and list if not already attached
                             $existing_contact->attachTags([$tag_id]);
                             $existing_contact->attachLists([$list_id]);
 
-                            echo '<div class="notice notice-success">Contact with email ' . esc_html($email) . ' updated successfully.</div>';
+                            echo '<div class="notice notice-success">' . sprintf(esc_html__('Contact with email %s updated successfully.', 'fluentcrm-csv-importer'), esc_html($email)) . '</div>';
                         } else {
                             // Prepare new contact data
                             $contact_data = [
                                 'first_name' => $first_name,
                                 'last_name'  => $last_name,
                                 'email'      => $email,
-                                'phone'      => $mobile_phone ?: $work_phone, // Use either mobile or work phone
+                                'phone'      => !empty($mobile_phone) ? $mobile_phone : $work_phone, // Use either mobile or work phone
                                 'status'     => 'subscribed', // Set status to subscribed
                             ];
 
@@ -139,9 +138,9 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
                             if ($new_contact) {
                                 $new_contact->attachTags([$tag_id]);
                                 $new_contact->attachLists([$list_id]);
-                                echo '<div class="notice notice-success">Contact with email ' . esc_html($email) . ' imported and added to tag and list successfully.</div>';
+                                echo '<div class="notice notice-success">' . sprintf(esc_html__('Contact with email %s imported and added to tag and list successfully.', 'fluentcrm-csv-importer'), esc_html($email)) . '</div>';
                             } else {
-                                echo '<div class="notice notice-error">Failed to import contact with email ' . esc_html($email) . '.</div>';
+                                echo '<div class="notice notice-error">' . sprintf(esc_html__('Failed to import contact with email %s.', 'fluentcrm-csv-importer'), esc_html($email)) . '</div>';
                             }
                         }
                     }
@@ -149,13 +148,12 @@ if (!class_exists('FluentCRM_CSV_Importer')) {
                     // Close the file
                     fclose($handle);
                 } else {
-                    echo '<div class="notice notice-error">Failed to open the CSV file.</div>';
+                    echo '<div class="notice notice-error">' . esc_html__('Failed to open the CSV file.', 'fluentcrm-csv-importer') . '</div>';
                 }
             } else {
-                echo '<div class="notice notice-error">Please upload a valid CSV file.</div>';
+                echo '<div class="notice notice-error">' . esc_html__('Please upload a valid CSV file.', 'fluentcrm-csv-importer') . '</div>';
             }
         }
-
     }
 
     // Initialize the plugin class
